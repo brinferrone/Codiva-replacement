@@ -1,321 +1,232 @@
-:root {
-  --bg: #0b0b12;
-  --bg-soft: #14141f;
-  --card: #181826;
-  --card-2: #1f1f30;
-  --line: rgba(255, 255, 255, 0.08);
-  --text: #f4f4f8;
-  --muted: #9a9ab0;
-  --accent: #7c5cff;
-  --accent-2: #ff5c8a;
-  --good: #34d399;
-  --warn: #fbbf24;
-  --bad: #f87171;
-  --radius: 18px;
+/* ============================================================
+   My Music Playlist — vanilla JS port of the Java Song project
+   ============================================================ */
+
+// --- Song "class" (mirrors Song.java) -------------------------
+function Song(title, artist, genre, rating, lengthInSeconds, songUrl) {
+  this.title = title;
+  this.artist = artist;
+  this.genre = genre;
+  this.rating = rating;
+  this.lengthInSeconds = lengthInSeconds;
+  this.songUrl = songUrl;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+// likeSong() from Java: bump rating, cap at 10
+Song.prototype.likeSong = function () {
+  this.rating++;
+  if (this.rating > 10) this.rating = 10;
+};
 
-body {
-  font-family: "Inter", system-ui, sans-serif;
-  background: radial-gradient(1200px 600px at 80% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
-              radial-gradient(900px 500px at -10% 10%, rgba(255, 92, 138, 0.12), transparent 55%),
-              var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+// toString() from Java
+Song.prototype.toString = function () {
+  return this.title + " by " + this.artist +
+    " \n Genre: " + this.genre +
+    " \n Rating: " + this.rating + "/10" +
+    " \n Length: " + this.lengthInSeconds + " seconds";
+};
+
+// --- Playlist state (max 5, like the Song[5] array) ----------
+const MAX_SONGS = 5;
+let playlist = [];
+
+// Seed with the three songs from SongRunner.java
+playlist.push(new Song("Fever", "Buckshot and Fakemink", "rap", 9, 145,
+  "https://www.youtube.com/watch?v=mqEZcXdtAUA"));
+playlist.push(new Song("Feel It", "D4vd", "pop", 8.5, 157,
+  "https://www.youtube.com/watch?v=N4lQtxmOwSg"));
+playlist.push(new Song("No Lie", "Sean Paul and Dua Lipa", "pop", 8.5, 221,
+  "https://www.youtube.com/watch?v=GzU8KqOY8YA"));
+
+// --- Helpers (ports of the static methods in SongRunner) -----
+function findAverageRating() {
+  if (playlist.length === 0) return 0;
+  let total = 0;
+  for (const s of playlist) total += s.rating;
+  return total / playlist.length;
 }
 
-.app {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 56px 24px 80px;
+function findFavorite() {
+  if (playlist.length === 0) return null;
+  let fav = playlist[0];
+  for (const s of playlist) {
+    if (s.rating > fav.rating) fav = s;
+  }
+  return fav;
 }
 
-/* Hero */
-.hero { margin-bottom: 36px; }
-
-.hero-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 18px;
+function findTotalTime() {
+  let total = 0;
+  for (const s of playlist) total += s.lengthInSeconds;
+  return total;
 }
 
-.hero-mark .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+// Rating rules from the assignment spec
+function playlistVerdict(avg) {
+  if (playlist.length === 0) return { text: "Add a song to see your rating.", cls: "empty" };
+  if (avg >= 9) return { text: "AMAZING!", cls: "amazing" };
+  if (avg >= 7) return { text: "GREAT PLAYLIST!", cls: "great" };
+  return { text: "KEEP WORKING ON IT!", cls: "keep" };
 }
 
-.hero-label {
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
+function formatTime(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m + "m " + s + "s";
 }
 
-.hero h1 {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(34px, 6vw, 56px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  background: linear-gradient(120deg, #fff 30%, #b9a8ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+// --- Add / Remove (ports of addSong / removeSong) -------------
+function addSong(song) {
+  if (playlist.length >= MAX_SONGS) {
+    alert("Your playlist is full (5 songs). Remove a song first.");
+    return false;
+  }
+  playlist.push(song);
+  render();
+  return true;
 }
 
-.subtitle {
-  margin-top: 14px;
-  color: var(--muted);
-  max-width: 560px;
-  font-size: 15px;
+function removeSongByTitle(title) {
+  const idx = playlist.findIndex(function (s) { return s.title === title; });
+  if (idx === -1) return false;
+  playlist.splice(idx, 1); // shifts remaining elements left, like the Java version
+  render();
+  return true;
 }
 
-/* Stats */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
+// --- Prompt-based flows (mirror the Scanner input in Java) -----
+function promptForNewSong() {
+  if (playlist.length >= MAX_SONGS) {
+    alert("Your playlist already has 5 songs. Remove one first.");
+    return;
+  }
+
+  const title = prompt("Enter song title:");
+  if (!title) return;
+  const artist = prompt("Enter artist:");
+  if (!artist) return;
+  const genre = prompt("Enter genre:");
+  if (!genre) return;
+
+  const ratingRaw = prompt("Enter rating (0–10):");
+  const rating = parseFloat(ratingRaw);
+  if (isNaN(rating)) { alert("Invalid rating."); return; }
+
+  const lengthRaw = prompt("Enter length in seconds:");
+  const lengthInSeconds = parseInt(lengthRaw, 10);
+  if (isNaN(lengthInSeconds)) { alert("Invalid length."); return; }
+
+  const songUrl = prompt("Enter song URL:");
+  if (!songUrl) return;
+
+  addSong(new Song(title, artist, genre, rating, lengthInSeconds, songUrl));
 }
 
-.stat {
-  background: linear-gradient(180deg, var(--card), var(--card-2));
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 18px 16px;
+function promptForRemoval() {
+  if (playlist.length === 0) {
+    alert("There are no songs to remove.");
+    return;
+  }
+  const title = prompt("Enter the title of the song you want to remove:");
+  if (!title) return;
+  const removed = removeSongByTitle(title);
+  if (removed) {
+    alert('"' + title + '" was removed successfully.');
+  } else {
+    alert("Song was not found. No song was removed.");
+  }
 }
 
-.stat .k {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
+// --- Rendering ----------------------------------------------
+const grid = document.getElementById("grid");
+const statsEl = document.getElementById("stats");
+const capacityEl = document.getElementById("capacity");
+const emptyEl = document.getElementById("empty");
+
+function render() {
+  renderCards();
+  renderStats();
 }
 
-.stat .v {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  margin-top: 8px;
-  word-break: break-word;
+function renderCards() {
+  grid.innerHTML = "";
+  emptyEl.hidden = playlist.length > 0;
+
+  playlist.forEach(function (song, i) {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.style.animationDelay = (i * 0.04) + "s";
+
+    const pct = Math.max(0, Math.min(100, (song.rating / 10) * 100));
+
+    card.innerHTML =
+      '<div class="cover"><span class="note">♪</span></div>' +
+      '<span class="genre">' + escapeHtml(song.genre) + '</span>' +
+      '<h3>' + escapeHtml(song.title) + '</h3>' +
+      '<div class="artist">' + escapeHtml(song.artist) + '</div>' +
+      '<div class="meta">' +
+        '<div class="rating">' +
+          '<span>' + song.rating + '/10</span>' +
+          '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
+        '</div>' +
+        '<span>' + formatTime(song.lengthInSeconds) + '</span>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="play">▶ Play Song</button>' +
+        '<button class="like" title="Like this song (+1 rating, max 10)">♥</button>' +
+      '</div>';
+
+    // Play button → open songUrl in a new tab
+    card.querySelector(".play").addEventListener("click", function () {
+      window.open(song.songUrl, "_blank", "noopener");
+    });
+
+    // Like button → Song.likeSong()
+    card.querySelector(".like").addEventListener("click", function () {
+      song.likeSong();
+      render();
+    });
+
+    grid.appendChild(card);
+  });
 }
 
-.stat .v.small { font-size: 15px; }
+function renderStats() {
+  const count = playlist.length;
+  const avg = findAverageRating();
+  const fav = findFavorite();
+  const total = findTotalTime();
+  const verdict = playlistVerdict(avg);
 
-.verdict {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 16px;
-  border-radius: var(--radius);
-  font-family: "Space Grotesk", sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 0.02em;
-  border: 1px solid var(--line);
-}
-.verdict.amazing { background: rgba(52, 211, 153, 0.12); color: var(--good); border-color: rgba(52, 211, 153, 0.3); }
-.verdict.great   { background: rgba(124, 92, 255, 0.14); color: #b9a8ff; border-color: rgba(124, 92, 255, 0.3); }
-.verdict.keep    { background: rgba(248, 113, 113, 0.12); color: var(--bad); border-color: rgba(248, 113, 113, 0.3); }
-.verdict.empty   { background: var(--card); color: var(--muted); }
+  capacityEl.textContent = count + " / " + MAX_SONGS + " songs";
+  capacityEl.classList.toggle("full", count >= MAX_SONGS);
 
-/* Controls */
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
+  statsEl.innerHTML =
+    statCell("Total Songs", String(count)) +
+    statCell("Average Rating", count ? avg.toFixed(2) + " / 10" : "—") +
+    statCell("Highest Rated", fav ? fav.title + " — " + fav.rating + "/10" : "—", true) +
+    statCell("Playlist Time", count ? formatTime(total) : "—") +
+    statCell("Songs Created", String(count)) +
+    '<div class="verdict ' + verdict.cls + '">Playlist Rating: ' + verdict.text + '</div>';
 }
 
-.btn {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 999px;
-  padding: 11px 20px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
-}
-.btn:active { transform: translateY(1px); }
-
-.btn-primary {
-  background: linear-gradient(120deg, var(--accent), #9d7bff);
-  color: #fff;
-  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.35);
-}
-.btn-primary:hover { filter: brightness(1.08); }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text);
-  border-color: var(--line);
-}
-.btn-ghost:hover { border-color: var(--accent-2); color: var(--accent-2); }
-
-.capacity {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.capacity.full { color: var(--warn); }
-
-/* Grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+function statCell(key, value, small) {
+  return '<div class="stat">' +
+    '<div class="k">' + key + '</div>' +
+    '<div class="v' + (small ? " small" : "") + '">' + value + '</div>' +
+  '</div>';
 }
 
-.card {
-  position: relative;
-  background: linear-gradient(180deg, var(--card), var(--card-2));
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 20px;
-  overflow: hidden;
-  transition: transform 0.18s ease, border-color 0.18s ease;
-  animation: rise 0.3s ease both;
-}
-.card:hover { transform: translateY(-3px); border-color: rgba(124, 92, 255, 0.4); }
-
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 64px;
-  background: linear-gradient(120deg, rgba(124, 92, 255, 0.25), rgba(255, 92, 138, 0.18));
-  opacity: 0.5;
+// --- Tiny escaping helper (safe rendering of user input) ----
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-.card .cover {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 64px;
-  margin: -20px -20px 16px;
-}
+// --- Wire up buttons ----------------------------------------
+document.getElementById("addBtn").addEventListener("click", promptForNewSong);
+document.getElementById("removeBtn").addEventListener("click", promptForRemoval);
 
-.card .cover .note {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 28px;
-  color: #fff;
-  opacity: 0.9;
-}
-
-.card .genre {
-  display: inline-block;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 3px 10px;
-  margin-bottom: 12px;
-}
-
-.card h3 {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.card .artist { color: var(--muted); font-size: 14px; margin-top: 2px; }
-
-.card .meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: "Space Grotesk", sans-serif;
-  font-weight: 600;
-  color: var(--text);
-}
-.rating .bar {
-  width: 60px; height: 6px; border-radius: 3px;
-  background: rgba(255,255,255,0.1);
-  overflow: hidden;
-}
-.rating .bar i {
-  display: block; height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-
-.card .actions { margin-top: 16px; display: flex; gap: 10px; }
-
-.play {
-  flex: 1;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 12px;
-  padding: 10px 14px;
-  cursor: pointer;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-.play:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-.like {
-  font-family: inherit;
-  font-size: 14px;
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  transition: color 0.18s ease, border-color 0.18s;
-}
-.like:hover { color: var(--accent-2); border-color: var(--accent-2); }
-
-/* Empty + footer */
-.empty {
-  text-align: center;
-  color: var(--muted);
-  padding: 48px 0;
-  font-size: 15px;
-}
-
-.foot {
-  margin-top: 48px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-
-@keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 720px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .verdict { grid-column: 1 / -1; }
-}
+// First paint
+render();

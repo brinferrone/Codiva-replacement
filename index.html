@@ -1,65 +1,42 @@
-# index.html
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Music Playlist</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Music Playlist</title>
+  <link rel="stylesheet" href__="style.css" />
+  <link rel="preconnect" href__="https://fonts.googleapis.com" />
+  <link rel="preconnect" href__="https://fonts.gstatic.com" crossorigin />
+  <link href__="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
-
-    <header>
-        <h1>🎵 My Music Playlist</h1>
-        <p>My Java Final Project — Web Version</p>
+  <div class="app">
+    <header class="hero">
+      <div class="hero-mark">
+        <span class="dot"></span>
+        <span class="hero-label">Intro to Java · Final Project</span>
+      </div>
+      <h1>My Music Playlist</h1>
+      <p class="subtitle">A web version of the Song project — store up to five songs, rate them, and let the playlist grade itself.</p>
     </header>
 
-    <main>
+    <section class="stats" id="stats" aria-live="polite"></section>
 
-        <section class="stats">
-            <div class="stat-card">
-                <h3>Total Songs</h3>
-                <p id="totalSongs">0</p>
-            </div>
+    <section class="controls">
+      <button class="btn btn-primary" id="addBtn">+ Add Song</button>
+      <button class="btn btn-ghost" id="removeBtn">− Remove Song</button>
+      <span class="capacity" id="capacity">0 / 5 songs</span>
+    </section>
 
-            <div class="stat-card">
-                <h3>Average Rating</h3>
-                <p id="averageRating">0.0/10</p>
-            </div>
+    <main class="grid" id="grid"></main>
 
-            <div class="stat-card">
-                <h3>Highest Rated</h3>
-                <p id="favoriteSong">None</p>
-            </div>
+    <p class="empty" id="empty" hidden>No songs yet. Click <strong>Add Song</strong> to start your playlist.</p>
 
-            <div class="stat-card">
-                <h3>Total Time</h3>
-                <p id="totalTime">0:00</p>
-            </div>
-        </section>
-
-        <section class="playlist-info">
-            <h2 id="playlistRating">KEEP WORKING ON IT!</h2>
-        </section>
-
-        <section class="buttons">
-            <button id="addSongButton">➕ Add Song</button>
-            <button id="removeSongButton">🗑️ Remove Song</button>
-        </section>
-
-        <section>
-            <div id="playlist" class="playlist"></div>
-        </section>
-
-    </main>
-
-    <footer>
-        <p>Music Playlist Final Project</p>
+    <footer class="foot">
+      <span>Built with plain HTML, CSS &amp; JavaScript — no frameworks.</span>
     </footer>
+  </div>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
-```
